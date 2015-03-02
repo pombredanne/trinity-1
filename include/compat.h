@@ -15,6 +15,9 @@
 #ifndef AT_EMPTY_PATH
 #define AT_EMPTY_PATH           0x1000
 #endif
+#ifndef AT_SYMLINK_NOFOLLOW
+#define AT_SYMLINK_NOFOLLOW	0x100
+#endif
 
 #ifndef O_PATH
 #define O_PATH        010000000 /* Resolve pathname but do not open file.  */
@@ -276,6 +279,11 @@ enum {
 #define PR_GET_THP_DISABLE      42
 #endif
 
+#ifndef PR_MPX_ENABLE_MANAGEMENT
+#define PR_MPX_ENABLE_MANAGEMENT  43
+#define PR_MPX_DISABLE_MANAGEMENT 44
+#endif
+
 /* linux/rds.h */
 #ifndef RDS_CANCEL_SENT_TO
 #define RDS_CANCEL_SENT_TO              1
@@ -395,6 +403,10 @@ enum kcmp_type {
 
 #ifndef SO_BPF_EXTENSIONS
 #define SO_BPF_EXTENSIONS       48
+#endif
+
+#ifndef SO_INCOMING_CPU
+#define SO_INCOMING_CPU		49
 #endif
 
 /* linux/tcp.h */

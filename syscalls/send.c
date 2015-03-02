@@ -14,15 +14,40 @@
 #include "utils.h"
 #include "compat.h"
 
+static void sanitise_send(struct syscallrecord *rec)
+{
+	unsigned int size;
+	void *ptr;
+
+	if (rand_bool())
+		size = 1;
+	else
+		size = rand() % page_size;
+
+	ptr = malloc(size);
+	if (ptr == NULL)
+		return;
+
+	rec->a2 = (unsigned long) ptr;
+	rec->a3 = size;
+
+	// TODO: only use this as a fallback, and actually have
+	// some per-proto generators here.
+	generate_rand_bytes(ptr, size);
+}
+
+static void post_send(struct syscallrecord *rec)
+{
+	freeptr(&rec->a2);
+}
+
 struct syscallentry syscall_send = {
 	.name = "send",
 	.num_args = 4,
 	.arg1name = "fd",
 	.arg1type = ARG_FD,
 	.arg2name = "buff",
-	.arg2type = ARG_ADDRESS,
 	.arg3name = "len",
-	.arg3type = ARG_LEN,
 	.arg4name = "flags",
         .arg4type = ARG_LIST,
 	.arg4list = {
@@ -34,6 +59,8 @@ struct syscallentry syscall_send = {
 			    MSG_WAITFORONE, MSG_FASTOPEN, MSG_CMSG_CLOEXEC, MSG_CMSG_COMPAT,
 		},
 	},
+	.sanitise = sanitise_send,
+	.post = post_send,
 };
 
 
@@ -66,15 +93,16 @@ struct syscallentry syscall_sendto = {
 	.arg6name = "addr_len",
 	.arg6type = ARG_SOCKADDRLEN,
 	.flags = NEED_ALARM,
+	.sanitise = sanitise_send,
+	.post = post_send,
 };
-
-static struct msghdr *msg;
 
 /*
  * SYSCALL_DEFINE3(sendmsg, int, fd, struct msghdr __user *, msg, unsigned, flags)
  */
 static void sanitise_sendmsg(struct syscallrecord *rec)
 {
+	struct msghdr *msg;
 	struct sockaddr *sa = NULL;
 	socklen_t salen;
 
@@ -96,9 +124,11 @@ static void sanitise_sendmsg(struct syscallrecord *rec)
 
 static void post_sendmsg(__unused__ struct syscallrecord *rec)
 {
+	struct msghdr *msg = (struct msghdr *) rec->a2;
+
 	if (msg != NULL) {
 		free(msg->msg_name);	// free sockaddr
-		free(msg);
+		freeptr(&rec->a2);
 	}
 }
 
